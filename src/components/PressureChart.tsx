@@ -124,7 +124,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({ data, surveyResult
                 className="w-full overflow-x-auto overflow-y-hidden no-scrollbar bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all p-6 pt-10"
             >
                 <div style={{ width: '2400px', height: '400px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <AreaChart
                             data={chartData}
                             margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
