@@ -9,7 +9,7 @@ import {
     ResponsiveContainer,
     ReferenceLine,
 } from 'recharts';
-import { format, isSameHour, isSameDay, startOfDay, differenceInMinutes } from 'date-fns';
+import { format, isSameDay, startOfDay, differenceInMinutes } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { PressureData } from '../lib/data-generator';
 
