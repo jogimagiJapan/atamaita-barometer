@@ -9,7 +9,7 @@ import {
     ResponsiveContainer,
     ReferenceLine,
 } from 'recharts';
-import { format, isSameHour, isSameDay, startOfDay } from 'date-fns';
+import { format, isSameHour, isSameDay, startOfDay, differenceInMinutes } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { PressureData } from '../lib/data-generator';
 
@@ -78,7 +78,13 @@ export const PressureChart: React.FC<PressureChartProps> = ({ data, surveyResult
 
     const chartData = useMemo(() => {
         return data.map(point => {
-            const result = surveyResults.find(r => isSameHour(r.timestamp, point.timestamp));
+            // Find the most recent survey result within 90 minutes (before or after) of this data point
+            // This allows matching 3-hour interval data with granular user inputs
+            const result = surveyResults.find(r => {
+                const diff = Math.abs(differenceInMinutes(r.timestamp, point.timestamp));
+                return diff <= 90; // Match within +/- 1.5 hours
+            });
+
             return {
                 ...point,
                 timestampNum: point.timestamp.getTime(),
