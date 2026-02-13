@@ -3,9 +3,16 @@ import type { PressureData } from './data-generator';
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || 'a8ed85507072a92670027e55435c93a8';
 const BASE_URL = 'https://api.openweathermap.org/data/2.5/forecast';
 
-export async function fetchWeatherForecast(city: string): Promise<PressureData[]> {
+export async function fetchWeatherForecast(query: string | { lat: number, lon: number }): Promise<PressureData[]> {
     try {
-        const response = await fetch(`${BASE_URL}?q=${city}&appid=${API_KEY}&units=metric`);
+        let url = `${BASE_URL}?appid=${API_KEY}&units=metric`;
+        if (typeof query === 'object') {
+            url += `&lat=${query.lat}&lon=${query.lon}`;
+        } else {
+            url += `&q=${query}`;
+        }
+
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Failed to fetch weather data');
         }

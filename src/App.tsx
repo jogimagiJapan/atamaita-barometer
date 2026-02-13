@@ -12,6 +12,7 @@ import type { PressureData } from './lib/data-generator';
 
 function App() {
   const [location, setLocation] = useState('Osaka,JP');
+  const [coords, setCoords] = useState<{ lat: number, lon: number } | null>(null);
   const [displayLocation, setDisplayLocation] = useState('大阪市中央区');
   const [currentUser, setCurrentUser] = useState<UserType>('me');
   const [currentDate] = useState(new Date());
@@ -79,7 +80,9 @@ function App() {
       setIsLoading(true);
       setError(null);
       try {
-        const forecast = await fetchWeatherForecast(location);
+        // Use coordinates if available, otherwise fallback to location string
+        const query = coords ? coords : location;
+        const forecast = await fetchWeatherForecast(query);
         savePressureToHistory(forecast);
         const merged = getLocalPressureHistory();
         setAllData(merged);
@@ -96,7 +99,7 @@ function App() {
       }
     }
     loadData();
-  }, [location]);
+  }, [location, coords]);
 
   // 解析データ
   const analyzedData = useMemo(() => analyzePressure(allData), [allData]);
@@ -145,12 +148,15 @@ function App() {
   };
 
   // Custom handler for full location objects from the new search
-  const handleDetailedLocationChange = (city: string, _lat?: number, _lon?: number) => {
+  const handleDetailedLocationChange = (city: string, lat?: number, lon?: number) => {
     setDisplayLocation(city);
-    // If we have coordinates (future improvement), use them. 
-    // For now, OpenWeatherMap forecast API works well with "City,Country" or just "City".
-    // We will blindly trust the search result gave us a valid query string or we construct one.
-    setLocation(`${city}`);
+    if (lat !== undefined && lon !== undefined) {
+      setCoords({ lat, lon });
+      setLocation(city); // Keep location string for display/fallback
+    } else {
+      setCoords(null);
+      setLocation(city);
+    }
   };
 
   return (
@@ -169,10 +175,14 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-2 w-full sm:w-auto justify-end">
-            <UserSelector currentUser={currentUser} onUserChange={setCurrentUser} />
-            <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
-            <LocationSelector currentLocation={displayLocation} onLocationChange={handleDetailedLocationChange} />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="w-full sm:w-auto">
+              <UserSelector currentUser={currentUser} onUserChange={setCurrentUser} />
+            </div>
+            <div className="hidden sm:block w-px h-6 bg-slate-200 mx-1"></div>
+            <div className="w-full sm:w-auto relative z-50">
+              <LocationSelector currentLocation={displayLocation} onLocationChange={handleDetailedLocationChange} />
+            </div>
           </div>
         </div>
       </header>
