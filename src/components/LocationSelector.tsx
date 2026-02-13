@@ -19,17 +19,40 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
                 <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                     <MapPin className="w-4 h-4 text-blue-500" />
                 </div>
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{currentLocation}</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{currentLocation}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isSearchOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isSearchOpen && (
                 <div className="absolute top-full right-0 mt-3 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                        <Search className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Select Location</span>
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Search className="w-4 h-4 text-slate-400" />
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Select Location</span>
+                        </div>
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const form = e.target as HTMLFormElement;
+                                const input = form.elements.namedItem('location') as HTMLInputElement;
+                                if (input.value.trim()) {
+                                    onLocationChange(input.value.trim());
+                                    setIsSearchOpen(false);
+                                }
+                            }}
+                            className="flex gap-2"
+                        >
+                            <input
+                                type="text"
+                                name="location"
+                                placeholder="Enter city name..."
+                                className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                autoFocus
+                            />
+                        </form>
                     </div>
-                    <div className="p-2">
+                    <div className="p-2 max-h-60 overflow-y-auto">
+                        <p className="px-4 py-2 text-xs font-bold text-slate-400">Presets</p>
                         {cities.map(city => (
                             <button
                                 key={city}
@@ -38,8 +61,8 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
                                     setIsSearchOpen(false);
                                 }}
                                 className={`w-full text-left px-4 py-3 text-sm rounded-2xl transition-all ${currentLocation === city
-                                        ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
-                                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    ? 'bg-blue-50 text-blue-600 font-bold dark:bg-blue-900/20'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                                     }`}
                             >
                                 {city}

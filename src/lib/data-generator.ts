@@ -5,6 +5,12 @@ export interface PressureData {
     pressure: number;
     label?: string;
     level?: 'danger' | 'warning' | 'caution' | 'rising' | 'normal';
+    // Weather specific data
+    weather?: string;
+    weatherDescription?: string;
+    temperature?: number;
+    windSpeed?: number;
+    icon?: string;
 }
 
 export function generateMockPressureData(currentDate: Date): PressureData[] {

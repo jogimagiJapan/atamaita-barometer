@@ -14,6 +14,11 @@ export async function fetchWeatherForecast(city: string): Promise<PressureData[]
         return data.list.map((item: any) => ({
             timestamp: new Date(item.dt * 1000),
             pressure: item.main.pressure,
+            weather: item.weather[0]?.main,
+            weatherDescription: item.weather[0]?.description,
+            icon: item.weather[0]?.icon,
+            temperature: item.main.temp,
+            windSpeed: item.wind.speed,
         }));
     } catch (error) {
         console.error('API Error:', error);

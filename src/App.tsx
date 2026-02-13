@@ -165,8 +165,8 @@ function App() {
   return (
     <div className={`min-h-screen pb-20 transition-all duration-700 ease-in-out ${theme.bg} text-slate-800 dark:text-slate-100 font-sans`}>
       <header className={`sticky top-0 z-40 w-full backdrop-blur-xl ${theme.headerBg} border-b border-black/5 dark:border-white/5 transition-colors duration-500`}>
-        <div className="max-w-4xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 shrink-0">
+        <div className="max-w-4xl mx-auto px-6 h-auto min-h-[5rem] py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
             <div className={`relative w-10 h-10 flex items-center justify-center`}>
               <div className={`absolute inset-0 border-2 ${theme.accentBorder} rounded-full opacity-20 animate-pulse`}></div>
               <div className={`w-6 h-6 border-4 ${theme.accentBorder} rounded-full flex items-center justify-center transition-colors duration-500`}>
@@ -178,7 +178,7 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-2">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-2 w-full sm:w-auto justify-end">
             <UserSelector currentUser={currentUser} onUserChange={setCurrentUser} />
             <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1"></div>
             <LocationSelector currentLocation={displayLocation} onLocationChange={handleLocationChange} />
@@ -206,7 +206,7 @@ function App() {
             <span>Health Advisory: Live Weather Source</span>
           </div>
           <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-4">
-            現在のコンディション
+            今の天気
           </h2>
         </section>
 
@@ -227,7 +227,7 @@ function App() {
 
             <section className="mt-16">
               <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight px-2">
-                {isMe ? '自分' : 'こみき'}の気圧推移・予報
+                気圧推移・予想
               </h3>
               <PressureChart
                 data={analyzedData}

@@ -43,11 +43,26 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                             <h2 className="text-5xl font-black text-slate-800 dark:text-white">
                                 {currentData.pressure} <span className="text-xl font-medium text-slate-400">hPa</span>
                             </h2>
+                            {currentData.weather && (
+                                <div className="flex items-center gap-2 mt-2">
+                                    {currentData.icon && (
+                                        <img
+                                            src={`https://openweathermap.org/img/wn/${currentData.icon}.png`}
+                                            alt={currentData.weather}
+                                            className="w-8 h-8"
+                                        />
+                                    )}
+                                    <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
+                                        {currentData.weather}
+                                        {currentData.temperature !== undefined && <span className="ml-2">{Math.round(currentData.temperature)}°C</span>}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         {status.icon}
                     </div>
 
-                    <div className="flex items-center gap-4 mt-6">
+                    <div className="flex flex-wrap items-center gap-4 mt-6">
                         <span className={`px-5 py-2 rounded-2xl text-sm font-bold ${status.bg.replace('/5', '/15')} ${status.color} ring-1 ring-current/10`}>
                             {status.label}
                         </span>
@@ -55,6 +70,11 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                             {trend === 'falling' ? <ArrowDown className="w-4 h-4" /> : trend === 'rising' ? <ArrowUp className={`w-4 h-4 ${isMe ? 'text-blue-500' : 'text-rose-500'}`} /> : null}
                             {trend === 'falling' ? '気圧低下中' : trend === 'rising' ? '気圧上昇中' : '安定しています'}
                         </div>
+                        {currentData.windSpeed !== undefined && (
+                            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 dark:bg-black/20 px-4 py-2 rounded-2xl">
+                                <span>Wind: {currentData.windSpeed}m/s</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
