@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Sun, Moon, Info, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { analyzePressure } from './lib/pressure-analyzer';
 import { PressureChart, type ConditionSurveyResult } from './components/PressureChart';
 import { SummaryPanel } from './components/SummaryPanel';
@@ -11,7 +11,6 @@ import { UserSelector, type UserType } from './components/UserSelector';
 import type { PressureData } from './lib/data-generator';
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [location, setLocation] = useState('Osaka,JP');
   const [displayLocation, setDisplayLocation] = useState('大阪市中央区');
   const [currentUser, setCurrentUser] = useState<UserType>('me');
@@ -29,20 +28,20 @@ function App() {
   const theme = useMemo(() => {
     return isMe
       ? {
-        bg: 'bg-slate-50 dark:bg-slate-950',
+        bg: 'bg-slate-50',
         hex: '#3b82f6',
-        accentBg: 'bg-blue-50 dark:bg-blue-900/20',
-        accentText: 'text-blue-500 dark:text-blue-400',
+        accentBg: 'bg-blue-50',
+        accentText: 'text-blue-500',
         accentBorder: 'border-blue-500',
-        headerBg: 'bg-white/60 dark:bg-slate-950/60'
+        headerBg: 'bg-white/60'
       }
       : {
-        bg: 'bg-[#fff5f6] dark:bg-slate-950',
+        bg: 'bg-[#fff5f6]',
         hex: '#f43f5e',
-        accentBg: 'bg-rose-50 dark:bg-rose-900/30',
-        accentText: 'text-rose-500 dark:text-rose-400',
+        accentBg: 'bg-rose-50',
+        accentText: 'text-rose-500',
         accentBorder: 'border-rose-400',
-        headerBg: 'bg-white/60 dark:bg-slate-950/60'
+        headerBg: 'bg-white/60'
       };
   }, [isMe]);
 
@@ -137,14 +136,6 @@ function App() {
     return 'steady';
   }, [analyzedData, currentPoint]);
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
   const handleAddSurveyResult = (type: SurveyType) => {
     const newResult = { timestamp: new Date(), type };
     setSurveyResults({
@@ -153,18 +144,18 @@ function App() {
     });
   };
 
-  const handleLocationChange = (loc: string) => {
-    setDisplayLocation(loc);
-    if (loc.includes('東京')) setLocation('Tokyo,JP');
-    else if (loc.includes('名古屋')) setLocation('Nagoya,JP');
-    else if (loc.includes('福岡')) setLocation('Fukuoka,JP');
-    else if (loc.includes('札幌')) setLocation('Sapporo,JP');
-    else setLocation('Osaka,JP');
+  // Custom handler for full location objects from the new search
+  const handleDetailedLocationChange = (city: string, _lat?: number, _lon?: number) => {
+    setDisplayLocation(city);
+    // If we have coordinates (future improvement), use them. 
+    // For now, OpenWeatherMap forecast API works well with "City,Country" or just "City".
+    // We will blindly trust the search result gave us a valid query string or we construct one.
+    setLocation(`${city}`);
   };
 
   return (
-    <div className={`min-h-screen pb-20 transition-all duration-700 ease-in-out ${theme.bg} text-slate-800 dark:text-slate-100 font-sans`}>
-      <header className={`sticky top-0 z-40 w-full backdrop-blur-xl ${theme.headerBg} border-b border-black/5 dark:border-white/5 transition-colors duration-500`}>
+    <div className={`min-h-screen pb-20 transition-all duration-700 ease-in-out ${theme.bg} text-slate-800 font-sans`}>
+      <header className={`sticky top-0 z-40 w-full backdrop-blur-xl ${theme.headerBg} border-b border-black/5 transition-colors duration-500`}>
         <div className="max-w-4xl mx-auto px-6 h-auto min-h-[5rem] py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
             <div className={`relative w-10 h-10 flex items-center justify-center`}>
@@ -173,29 +164,23 @@ function App() {
                 <div className={`w-1.5 h-1.5 ${isMe ? 'bg-blue-500' : 'bg-rose-500'} rounded-full transition-colors duration-500`}></div>
               </div>
             </div>
-            <h1 className="text-xl font-bold tracking-[0.15em] leading-none uppercase text-slate-800 dark:text-white font-mono">
+            <h1 className="text-xl font-bold tracking-[0.15em] leading-none uppercase text-slate-800 font-mono">
               ATAMAITA <span className="font-light opacity-50">Barometer</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-2 w-full sm:w-auto justify-end">
             <UserSelector currentUser={currentUser} onUserChange={setCurrentUser} />
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1"></div>
-            <LocationSelector currentLocation={displayLocation} onLocationChange={handleLocationChange} />
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-10 h-10 shrink-0 rounded-2xl bg-white dark:bg-slate-900 text-slate-500 ring-1 ring-black/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-            >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+            <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
+            <LocationSelector currentLocation={displayLocation} onLocationChange={handleDetailedLocationChange} />
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-12">
         {error && (
-          <div className="mb-8 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-center gap-3 text-rose-600 dark:text-rose-400 text-sm font-bold">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-sm font-bold">
+            <Info className="w-5 h-5 shrink-0" />
             <p>{error}</p>
           </div>
         )}
@@ -205,7 +190,7 @@ function App() {
             <Info className="w-3.5 h-3.5" />
             <span>Health Advisory: Live Weather Source</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-4">
+          <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-4">
             今の天気
           </h2>
         </section>
@@ -226,7 +211,7 @@ function App() {
             <SummaryPanel currentData={currentPoint} todayMaxLevel={todayMaxLevel} trend={trend} currentUser={currentUser} />
 
             <section className="mt-16">
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight px-2">
+              <h3 className="text-xl font-black text-slate-800 tracking-tight px-2">
                 気圧推移・予想
               </h3>
               <PressureChart
@@ -240,15 +225,15 @@ function App() {
             <ConditionSurvey onAddResult={handleAddSurveyResult} currentUser={currentUser} />
           </>
         ) : (
-          <div className="p-12 text-center card-tactile bg-white dark:bg-slate-900">
+          <div className="p-12 text-center card-tactile bg-white">
             <p className="text-slate-400 font-bold">データがありません</p>
           </div>
         )}
 
-        <footer className="mt-24 border-t border-slate-100 dark:border-slate-900 pt-12">
+        <footer className="mt-24 border-t border-slate-100 pt-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600">
-              <ExternalLink className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <Info className="w-4 h-4" />
               <p className="text-[10px] font-black uppercase tracking-[0.1em]">
                 Data Source: OpenWeatherMap (5-Day / 3-Hour Forecast)
               </p>

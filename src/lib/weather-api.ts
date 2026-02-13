@@ -26,6 +26,27 @@ export async function fetchWeatherForecast(city: string): Promise<PressureData[]
     }
 }
 
+export interface CitySearchResult {
+    name: string;
+    lat: number;
+    lon: number;
+    country: string;
+    state?: string;
+    local_names?: Record<string, string>;
+}
+
+export async function searchCities(query: string): Promise<CitySearchResult[]> {
+    if (!query || query.length < 2) return [];
+    try {
+        const response = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${API_KEY}`);
+        if (!response.ok) throw new Error('Failed to search cities');
+        return await response.json();
+    } catch (error) {
+        console.error('Geo API Error:', error);
+        return [];
+    }
+}
+
 // LocalStorage helpers
 const STORAGE_KEY = 'pressure_history';
 

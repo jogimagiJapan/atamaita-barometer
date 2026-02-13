@@ -8,10 +8,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        danger: '#ef4444', // 警戒 (Red)
-        warning: '#f97316', // 注意 (Orange)
-        caution: '#eab308', // やや注意 (Yellow)
-        rising: '#a855f7', // 上昇注意 (Purple)
+        danger: '#dc2626', // 警戒 (Deep Red)
+        warning: '#ea580c', // 注意 (Deep Orange)
+        caution: '#ca8a04', // やや注意 (Deep Yellow/Gold)
+        rising: '#9333ea', // 上昇注意 (Deep Purple)
       },
     },
   },
