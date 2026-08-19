@@ -1,31 +1,50 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Info, Loader2 } from 'lucide-react';
-import { analyzePressure } from './lib/pressure-analyzer';
-import { PressureChart, type ConditionSurveyResult } from './components/PressureChart';
+import { analyzePressure, maxFallingLevel, summarizeConditionCorrelation } from './lib/pressure-analyzer';
+import { PressureChart } from './components/PressureChart';
 import { SummaryPanel } from './components/SummaryPanel';
 import { ConditionSurvey, type SurveyType } from './components/ConditionSurvey';
 import { LocationSelector } from './components/LocationSelector';
+import { DEFAULT_PLACE, type Place } from './lib/places';
 import { isSameDay, startOfToday } from 'date-fns';
-import { fetchWeatherForecast, getLocalPressureHistory, savePressureToHistory } from './lib/weather-api';
+import { fetchPressureSeries, getLocalPressureHistory, savePressureToHistory } from './lib/weather-api';
 import { UserSelector, type UserType } from './components/UserSelector';
-import type { PressureData } from './lib/data-generator';
+import type { AlertLevel, ConditionSurveyResult, PressureData } from './lib/data-generator';
+
+const SURVEY_STORAGE_KEY = 'user_surveys';
+const PLACE_STORAGE_KEY = 'selected_place';
+
+function loadSavedPlace(): Place {
+  try {
+    const saved = localStorage.getItem(PLACE_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as Place;
+      if (typeof parsed.lat === 'number' && typeof parsed.lon === 'number' && parsed.name) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_PLACE;
+}
+
+function emptySurveys(): Record<UserType, ConditionSurveyResult[]> {
+  return { me: [], wife: [] };
+}
 
 function App() {
-  const [location, setLocation] = useState('Osaka,JP');
-  const [coords, setCoords] = useState<{ lat: number, lon: number } | null>(null);
-  const [displayLocation, setDisplayLocation] = useState('大阪市中央区');
+  const [place, setPlace] = useState<Place>(loadSavedPlace);
   const [currentUser, setCurrentUser] = useState<UserType>('me');
-  const [currentDate] = useState(new Date());
-
-  // ユーザーごとのアンケート結果を管理
-  const [surveyResults, setSurveyResults] = useState<Record<UserType, ConditionSurveyResult[]>>({
-    me: [],
-    wife: []
-  });
+  const [currentDate] = useState(() => new Date());
+  const [surveysReady, setSurveysReady] = useState(false);
+  const [surveyResults, setSurveyResults] = useState<Record<UserType, ConditionSurveyResult[]>>(emptySurveys);
+  const [allData, setAllData] = useState<PressureData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const isMe = currentUser === 'me';
 
-  // ユーザーごとのテーマ設定
   const theme = useMemo(() => {
     return isMe
       ? {
@@ -46,89 +65,87 @@ function App() {
       };
   }, [isMe]);
 
-  // 初回ロード時にLocalStorageからアンケート結果を復旧
   useEffect(() => {
-    const saved = localStorage.getItem('user_surveys');
+    const saved = localStorage.getItem(SURVEY_STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        const processed = Object.keys(parsed).reduce((acc, key) => {
-          acc[key as UserType] = parsed[key].map((r: any) => ({ ...r, timestamp: new Date(r.timestamp) }));
-          return acc;
-        }, {} as Record<UserType, ConditionSurveyResult[]>);
-        setSurveyResults(processed);
+        const parsed = JSON.parse(saved) as Record<string, Array<Omit<ConditionSurveyResult, 'timestamp'> & { timestamp: string }>>;
+        setSurveyResults({
+          me: (parsed.me ?? []).map((r) => ({ ...r, timestamp: new Date(r.timestamp) })),
+          wife: (parsed.wife ?? []).map((r) => ({ ...r, timestamp: new Date(r.timestamp) })),
+        });
       } catch (e) {
         console.error('Failed to load surveys', e);
       }
     }
+    setSurveysReady(true);
   }, []);
 
-  // 変更時に保存
   useEffect(() => {
-    if (Object.values(surveyResults).some(arr => arr.length > 0)) {
-      localStorage.setItem('user_surveys', JSON.stringify(surveyResults));
-    }
-  }, [surveyResults]);
+    if (!surveysReady) return;
+    localStorage.setItem(SURVEY_STORAGE_KEY, JSON.stringify(surveyResults));
+  }, [surveyResults, surveysReady]);
 
-  const [allData, setAllData] = useState<PressureData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // 初回ロードと場所変更時のデータ取得
   useEffect(() => {
+    localStorage.setItem(PLACE_STORAGE_KEY, JSON.stringify(place));
+  }, [place]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
     async function loadData() {
       setIsLoading(true);
       setError(null);
       try {
-        // Use coordinates if available, otherwise fallback to location string
-        const query = coords ? coords : location;
-        const forecast = await fetchWeatherForecast(query);
-        savePressureToHistory(forecast);
-        const merged = getLocalPressureHistory();
-        setAllData(merged);
-      } catch (err: any) {
+        const series = await fetchPressureSeries(place.lat, place.lon, controller.signal);
+        if (controller.signal.aborted) return;
+        savePressureToHistory(place.lat, place.lon, series);
+        setAllData(getLocalPressureHistory(place.lat, place.lon));
+      } catch (err) {
+        if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+          return;
+        }
         console.error(err);
-        if (getLocalPressureHistory().length > 0) {
-          setAllData(getLocalPressureHistory());
+        const history = getLocalPressureHistory(place.lat, place.lon);
+        if (history.length > 0) {
+          setAllData(history);
           setError('最新データの取得に失敗しました。履歴を表示しています。');
         } else {
           setError('データの取得に失敗しました。APIキーまたはネットワークを確認してください。');
         }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }
-    loadData();
-  }, [location, coords]);
 
-  // 解析データ
+    loadData();
+    return () => controller.abort();
+  }, [place.lat, place.lon]);
+
   const analyzedData = useMemo(() => analyzePressure(allData), [allData]);
 
-  // 今日のデータ
   const todayData = useMemo(() => {
     const today = startOfToday();
     return analyzedData.filter(d => isSameDay(d.timestamp, today));
   }, [analyzedData]);
 
-  // 現在のデータ
   const currentPoint = useMemo(() => {
     if (analyzedData.length === 0) return null;
-    const now = new Date();
-    return analyzedData.find(d => d.timestamp >= now) || analyzedData[analyzedData.length - 1];
+    const now = Date.now() + 5 * 60 * 1000;
+    const pastOrNow = analyzedData.filter((d) => d.timestamp.getTime() <= now);
+    if (pastOrNow.length === 0) return analyzedData[0];
+    return pastOrNow[pastOrNow.length - 1];
   }, [analyzedData]);
 
-  // 本日の最大警戒レベル
-  const todayMaxLevel = useMemo(() => {
-    if (todayData.length === 0) return 'normal';
-    const levels = ['normal', 'caution', 'rising', 'warning', 'danger'];
-    const maxIndex = todayData.reduce((max, d) => {
-      const idx = levels.indexOf(d.level || 'normal');
-      return idx > max ? idx : max;
-    }, 0);
-    return levels[maxIndex] as any;
+  const todayMaxLevel = useMemo((): AlertLevel => {
+    const fallingPeak = maxFallingLevel(todayData);
+    const hasRising = todayData.some((d) => d.level === 'rising');
+    if (fallingPeak !== 'normal') return fallingPeak;
+    return hasRising ? 'rising' : 'normal';
   }, [todayData]);
 
-  // 気圧トレンド
   const trend = useMemo(() => {
     if (!currentPoint) return 'steady';
     const idx = analyzedData.indexOf(currentPoint);
@@ -139,24 +156,22 @@ function App() {
     return 'steady';
   }, [analyzedData, currentPoint]);
 
+  const correlation = useMemo(
+    () => summarizeConditionCorrelation(analyzedData, surveyResults[currentUser]),
+    [analyzedData, surveyResults, currentUser],
+  );
+
+  const hasPastObservations = useMemo(
+    () => allData.some((d) => d.timestamp.getTime() < Date.now() - 2 * 60 * 60 * 1000),
+    [allData],
+  );
+
   const handleAddSurveyResult = (type: SurveyType) => {
     const newResult = { timestamp: new Date(), type };
-    setSurveyResults({
-      ...surveyResults,
-      [currentUser]: [...surveyResults[currentUser], newResult]
-    });
-  };
-
-  // Custom handler for full location objects from the new search
-  const handleDetailedLocationChange = (city: string, lat?: number, lon?: number) => {
-    setDisplayLocation(city);
-    if (lat !== undefined && lon !== undefined) {
-      setCoords({ lat, lon });
-      setLocation(city); // Keep location string for display/fallback
-    } else {
-      setCoords(null);
-      setLocation(city);
-    }
+    setSurveyResults((prev) => ({
+      ...prev,
+      [currentUser]: [...prev[currentUser], newResult],
+    }));
   };
 
   return (
@@ -181,7 +196,11 @@ function App() {
             </div>
             <div className="hidden sm:block w-px h-6 bg-slate-200 mx-1"></div>
             <div className="w-full sm:w-auto relative z-50">
-              <LocationSelector currentLocation={displayLocation} onLocationChange={handleDetailedLocationChange} />
+              <LocationSelector
+                currentLocation={place.name}
+                onLocationChange={setPlace}
+                accent={isMe ? 'blue' : 'rose'}
+              />
             </div>
           </div>
         </div>
@@ -212,10 +231,10 @@ function App() {
           </div>
         ) : currentPoint ? (
           <>
-            {allData.filter(d => d.timestamp < new Date()).length === 0 && (
+            {!hasPastObservations && (
               <div className={`mb-8 p-4 ${theme.accentBg} border ${theme.accentBorder}/20 rounded-2xl flex items-center gap-3 text-xs font-bold transition-all duration-500`}>
                 <Info className={`w-4 h-4 shrink-0 ${isMe ? 'text-blue-500' : 'text-rose-500'}`} />
-                <p>データ蓄積中（過去データがまだありません）。予報を表示しています。</p>
+                <p>データ蓄積中（この地点の過去観測がまだありません）。現在値と予報を表示しています。</p>
               </div>
             )}
             <SummaryPanel currentData={currentPoint} todayMaxLevel={todayMaxLevel} trend={trend} currentUser={currentUser} />
@@ -232,7 +251,11 @@ function App() {
               />
             </section>
 
-            <ConditionSurvey onAddResult={handleAddSurveyResult} currentUser={currentUser} />
+            <ConditionSurvey
+              onAddResult={handleAddSurveyResult}
+              currentUser={currentUser}
+              correlation={correlation}
+            />
           </>
         ) : (
           <div className="p-12 text-center card-tactile bg-white">
@@ -245,7 +268,7 @@ function App() {
             <div className="flex items-center gap-2 text-slate-300">
               <Info className="w-4 h-4" />
               <p className="text-[10px] font-black uppercase tracking-[0.1em]">
-                Data Source: OpenWeatherMap (5-Day / 3-Hour Forecast)
+                Data Source: OpenWeatherMap (Current + 5-Day / 3-Hour Forecast)
               </p>
             </div>
             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">

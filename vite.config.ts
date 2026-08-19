@@ -8,5 +8,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  base: '/',
+  // Vercel はサイトルート (/) で配信。GitHub Pages だけサブパスが必要。
+  base: process.env.VERCEL ? '/' : '/atamaita-barometer/',
 })

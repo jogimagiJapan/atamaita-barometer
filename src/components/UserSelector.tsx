@@ -17,11 +17,11 @@ const DonutIcon = () => (
 
 export const UserSelector: React.FC<UserSelectorProps> = ({ currentUser, onUserChange }) => {
     return (
-        <div className="flex p-1 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl w-full sm:w-fit self-center sm:self-auto ring-1 ring-black/5">
+        <div className="flex p-1 bg-slate-100/50 backdrop-blur-sm rounded-2xl w-full sm:w-fit self-center sm:self-auto ring-1 ring-black/5">
             <button
                 onClick={() => onUserChange('me')}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentUser === 'me'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm ring-1 ring-black/5'
+                        ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
                         : 'text-slate-400 hover:text-slate-600'
                     }`}
             >
@@ -31,7 +31,7 @@ export const UserSelector: React.FC<UserSelectorProps> = ({ currentUser, onUserC
             <button
                 onClick={() => onUserChange('wife')}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentUser === 'wife'
-                        ? 'bg-white dark:bg-slate-700 text-rose-500 shadow-sm ring-1 ring-black/5'
+                        ? 'bg-white text-rose-500 shadow-sm ring-1 ring-black/5'
                         : 'text-slate-400 hover:text-slate-600'
                     }`}
             >

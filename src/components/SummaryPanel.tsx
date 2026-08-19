@@ -1,12 +1,12 @@
 import React from 'react';
 import { AlertTriangle, Info, ArrowDown, ArrowUp } from 'lucide-react';
-import type { PressureData } from '../lib/data-generator';
+import type { AlertLevel, PressureData } from '../lib/data-generator';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
 interface SummaryPanelProps {
     currentData: PressureData;
-    todayMaxLevel: 'danger' | 'warning' | 'caution' | 'rising' | 'normal';
+    todayMaxLevel: AlertLevel;
     trend: 'falling' | 'rising' | 'steady';
     currentUser: 'me' | 'wife';
 }
@@ -23,7 +23,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
             default: return {
                 label: '正常',
                 color: 'text-slate-400',
-                bg: 'bg-slate-50 dark:bg-slate-800/30',
+                bg: 'bg-slate-50',
                 icon: <Info className={`w-8 h-8 ${isMe ? 'text-blue-500/30' : 'text-rose-500/30'}`} />
             };
         }
@@ -31,29 +31,29 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
 
     const status = getLevelInfo(currentData.level || 'normal');
     const maxStatus = getLevelInfo(todayMaxLevel);
+    const weatherLabel = currentData.weatherDescription || currentData.weather;
 
     return (
         <div className="flex flex-col gap-6 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Main Status Card */}
-                <div className={`md:col-span-2 p-8 bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all ${status.bg} border-none flex flex-col justify-between min-h-[200px]`}>
+                <div className={`md:col-span-2 p-8 bg-white rounded-[2rem] shadow-sm ring-1 ring-black/5 transition-all ${status.bg} border-none flex flex-col justify-between min-h-[200px]`}>
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Current Pressure</p>
-                            <h2 className="text-5xl font-black text-slate-800 dark:text-white">
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">現在の気圧</p>
+                            <h2 className="text-5xl font-black text-slate-800">
                                 {currentData.pressure} <span className="text-xl font-medium text-slate-400">hPa</span>
                             </h2>
-                            {currentData.weather && (
+                            {weatherLabel && (
                                 <div className="flex items-center gap-2 mt-2">
                                     {currentData.icon && (
                                         <img
                                             src={`https://openweathermap.org/img/wn/${currentData.icon}.png`}
-                                            alt={currentData.weather}
+                                            alt={weatherLabel}
                                             className="w-8 h-8"
                                         />
                                     )}
-                                    <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
-                                        {currentData.weather}
+                                    <span className="text-lg font-bold text-slate-600">
+                                        {weatherLabel}
                                         {currentData.temperature !== undefined && <span className="ml-2">{Math.round(currentData.temperature)}°C</span>}
                                     </span>
                                 </div>
@@ -66,25 +66,27 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                         <span className={`px-5 py-2 rounded-2xl text-sm font-bold ${status.bg.replace('/5', '/15')} ${status.color} ring-1 ring-current/10`}>
                             {status.label}
                         </span>
-                        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 dark:bg-black/20 px-4 py-2 rounded-2xl">
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 px-4 py-2 rounded-2xl">
                             {trend === 'falling' ? <ArrowDown className="w-4 h-4" /> : trend === 'rising' ? <ArrowUp className={`w-4 h-4 ${isMe ? 'text-blue-500' : 'text-rose-500'}`} /> : null}
                             {trend === 'falling' ? '気圧低下中' : trend === 'rising' ? '気圧上昇中' : '安定しています'}
                         </div>
                         {currentData.windSpeed !== undefined && (
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 dark:bg-black/20 px-4 py-2 rounded-2xl">
-                                <span>Wind: {currentData.windSpeed}m/s</span>
+                            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 px-4 py-2 rounded-2xl">
+                                <span>風速: {currentData.windSpeed}m/s</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Max Level Card */}
-                <div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm ring-1 ring-black/5 dark:ring-white/5 transition-all flex flex-col justify-between relative overflow-hidden">
+                <div className="p-8 bg-white rounded-[2rem] shadow-sm ring-1 ring-black/5 transition-all flex flex-col justify-between relative overflow-hidden">
                     <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Today's Peak</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">本日のピーク</p>
                         <h3 className={`text-2xl font-black ${maxStatus.color}`}>
                             {maxStatus.label}
                         </h3>
+                        <p className="text-xs font-medium text-slate-400 mt-2">
+                            低下側の最大。上昇は別判定です。
+                        </p>
                     </div>
                     <div className="mt-4">
                         <p className="text-xs font-bold text-slate-300">
@@ -92,7 +94,6 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                         </p>
                     </div>
 
-                    {/* Decorative Dot - now themed */}
                     <div className={`absolute top-6 right-6 w-2.5 h-2.5 rounded-full ${todayMaxLevel === 'normal' ? (isMe ? 'bg-blue-500/50' : 'bg-rose-500/50') : maxStatus.color.replace('text-', 'bg-')}`} />
                 </div>
             </div>
