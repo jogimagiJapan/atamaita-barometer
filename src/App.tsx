@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Info, Loader2 } from 'lucide-react';
-import { analyzePressure, maxFallingLevel, summarizeConditionCorrelation } from './lib/pressure-analyzer';
+import { analyzePressure, buildAlertWindows, maxFallingLevel, summarizeConditionCorrelation } from './lib/pressure-analyzer';
 import { PressureChart } from './components/PressureChart';
 import { SummaryPanel } from './components/SummaryPanel';
+import { AlertGuide } from './components/AlertGuide';
 import { ConditionSurvey, type SurveyType } from './components/ConditionSurvey';
 import { LocationSelector } from './components/LocationSelector';
 import { DEFAULT_PLACE, type Place } from './lib/places';
@@ -161,6 +162,8 @@ function App() {
     [analyzedData, surveyResults, currentUser],
   );
 
+  const alertWindows = useMemo(() => buildAlertWindows(analyzedData), [analyzedData]);
+
   const hasPastObservations = useMemo(
     () => allData.some((d) => d.timestamp.getTime() < Date.now() - 2 * 60 * 60 * 1000),
     [allData],
@@ -237,7 +240,13 @@ function App() {
                 <p>データ蓄積中（この地点の過去観測がまだありません）。現在値と予報を表示しています。</p>
               </div>
             )}
-            <SummaryPanel currentData={currentPoint} todayMaxLevel={todayMaxLevel} trend={trend} currentUser={currentUser} />
+            <SummaryPanel
+              currentData={currentPoint}
+              todayMaxLevel={todayMaxLevel}
+              trend={trend}
+              currentUser={currentUser}
+              alertWindows={alertWindows}
+            />
 
             <section className="mt-16">
               <h3 className="text-xl font-black text-slate-800 tracking-tight px-2">
@@ -256,6 +265,8 @@ function App() {
               currentUser={currentUser}
               correlation={correlation}
             />
+
+            <AlertGuide />
           </>
         ) : (
           <div className="p-12 text-center card-tactile bg-white">

@@ -1,6 +1,8 @@
 import React from 'react';
 import { AlertTriangle, Info, ArrowDown, ArrowUp } from 'lucide-react';
 import type { AlertLevel, PressureData } from '../lib/data-generator';
+import type { AlertWindow } from '../lib/pressure-analyzer';
+import { AlertWindowsList } from './AlertGuide';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -9,9 +11,16 @@ interface SummaryPanelProps {
     todayMaxLevel: AlertLevel;
     trend: 'falling' | 'rising' | 'steady';
     currentUser: 'me' | 'wife';
+    alertWindows?: AlertWindow[];
 }
 
-export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMaxLevel, trend, currentUser }) => {
+export const SummaryPanel: React.FC<SummaryPanelProps> = ({
+    currentData,
+    todayMaxLevel,
+    trend,
+    currentUser,
+    alertWindows = [],
+}) => {
     const isMe = currentUser === 'me';
 
     const getLevelInfo = (level: string) => {
@@ -43,6 +52,9 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                             <h2 className="text-5xl font-black text-slate-800">
                                 {currentData.pressure} <span className="text-xl font-medium text-slate-400">hPa</span>
                             </h2>
+                            {currentData.timeBand && (
+                                <p className="text-sm font-bold text-slate-400 mt-1">{currentData.timeBand}の気圧</p>
+                            )}
                             {weatherLabel && (
                                 <div className="flex items-center gap-2 mt-2">
                                     {currentData.icon && (
@@ -66,6 +78,11 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                         <span className={`px-5 py-2 rounded-2xl text-sm font-bold ${status.bg.replace('/5', '/15')} ${status.color} ring-1 ring-current/10`}>
                             {status.label}
                         </span>
+                        {currentData.reasons && currentData.reasons.length > 0 && (
+                            <span className="text-xs font-bold text-slate-400">
+                                {currentData.reasons.join(' · ')}
+                            </span>
+                        )}
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-white/50 px-4 py-2 rounded-2xl">
                             {trend === 'falling' ? <ArrowDown className="w-4 h-4" /> : trend === 'rising' ? <ArrowUp className={`w-4 h-4 ${isMe ? 'text-blue-500' : 'text-rose-500'}`} /> : null}
                             {trend === 'falling' ? '気圧低下中' : trend === 'rising' ? '気圧上昇中' : '安定しています'}
@@ -78,7 +95,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                     </div>
                 </div>
 
-                <div className="p-8 bg-white rounded-[2rem] shadow-sm ring-1 ring-black/5 transition-all flex flex-col justify-between relative overflow-hidden">
+                <div className="p-8 bg-white rounded-[2rem] shadow-sm ring-1 ring-black/5 transition-all flex flex-col relative overflow-hidden">
                     <div>
                         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">本日のピーク</p>
                         <h3 className={`text-2xl font-black ${maxStatus.color}`}>
@@ -87,12 +104,12 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ currentData, todayMa
                         <p className="text-xs font-medium text-slate-400 mt-2">
                             低下側の最大。上昇は別判定です。
                         </p>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-xs font-bold text-slate-300">
+                        <p className="text-xs font-bold text-slate-300 mt-3">
                             {format(new Date(), 'yyyy / MM / dd (E)', { locale: ja })}
                         </p>
                     </div>
+
+                    <AlertWindowsList windows={alertWindows} compact />
 
                     <div className={`absolute top-6 right-6 w-2.5 h-2.5 rounded-full ${todayMaxLevel === 'normal' ? (isMe ? 'bg-blue-500/50' : 'bg-rose-500/50') : maxStatus.color.replace('text-', 'bg-')}`} />
                 </div>
